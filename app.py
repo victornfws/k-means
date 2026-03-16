@@ -108,14 +108,14 @@ if df_original is not None:
     col3, col4 = st.columns([1, 1])
     
     with col3:
-        st.subheader("A. Perfiles Promedio de los Clusters")
+        st.subheader("A. Perfiles promedio de los Clusters")
         # 1. Aseguramos que los datos sean numéricos y calculamos el promedio
         try:
             # Forzamos numérico por si el CSV venía "sucio"
             df_copia[COLUMNAS_CLUSTERING] = df_copia[COLUMNAS_CLUSTERING].apply(pd.to_numeric, errors='coerce')
             
             # Agrupamos y promediamos indicando que solo queremos números
-            perfiles = df_copia.groupby('Cluster')[COLUMNAS_CLUSTERING].mean(numeric_only=True)
+            perfiles = df_original.groupby('Cluster')[COLUMNAS_CLUSTERING].mean(numeric_only=True)
             
             # Mostramos con formato bonito
             st.dataframe(perfiles.style.format("{:.2f}").background_gradient(cmap='Blues'))
