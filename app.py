@@ -131,14 +131,9 @@ if df_original is not None:
     col3, col4 = st.columns([1, 1])
     
     with col3:
-        st.subheader("A. Perfiles promedio de los Clusters")
-        st.write("Color azul: valores más altos, color blanco: valores más bajos.")
-
-        # 1. Aseguramos que los datos sean numéricos y calculamos el promedio
+        st.subheader("A. Perfiles Promedio de los Clusters")
         try:
-            # Forzamos numérico por si el CSV venía "sucio"
-            df_copia[COLUMNAS_CLUSTERING] = df_copia[COLUMNAS_CLUSTERING].apply(pd.to_numeric, errors='coerce')
-            
+            # USAMOS df_original que es el que definimos arriba y ya tiene la columna 'Cluster'
             # Agrupamos y promediamos indicando que solo queremos números
             perfiles = df_original.groupby('Cluster')[COLUMNAS_CLUSTERING].mean(numeric_only=True)
             
@@ -146,7 +141,7 @@ if df_original is not None:
             st.dataframe(perfiles.style.format("{:.2f}").background_gradient(cmap='Blues'))
         except Exception as e:
             st.error(f"Error al calcular perfiles: {e}")
-      
+            
     # B. Gráfica de Segmentación
     with col4:
         st.subheader("B. Agrupacion de Clusters")
