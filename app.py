@@ -26,7 +26,7 @@ uploaded_file = st.sidebar.file_uploader("Selecciona tu archivo CSV", type=["csv
 # ====================================================================
 
 # Cargar los datos. st.cache_data asegura que solo se ejecute la primera vez.
-st.cache_data 
+@st.cache_data 
 def cargar_y_preprocesar(file):
     # Si hay un archivo subido, lo leemos
     if file is not None:
@@ -141,7 +141,7 @@ if df_original is not None:
             st.dataframe(perfiles.style.format("{:.2f}").background_gradient(cmap='Blues'))
         except Exception as e:
             st.error(f"Error al calcular perfiles: {e}")
-            
+
     # B. Gráfica de Segmentación
     with col4:
         st.subheader("B. Agrupacion de Clusters")
