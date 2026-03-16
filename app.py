@@ -50,26 +50,29 @@ if df_original is not None:
     else:
         st.sidebar.info("Usando archivo local: clientes.csv")
 
-    # --- SELECCIÓN DINÁMICA DE COLUMNAS ---
-    # Esto evita que la app truene si el CSV cambia de nombres
-    st.sidebar.subheader("Selecciona las variables")
+    # --- SELECCIÓN DINÁMICA DE COLUMNAS (Para evitar el KeyError) ---
+    st.sidebar.subheader("Variables para Clustering")
     
-    # Buscamos si existen las de por defecto, si no, agarramos las primeras que haya
-    def_x = df_original.columns.get_loc("Anios_Experiencia") if "Anios_Experiencia" in df_original.columns else 0
-    def_y = df_original.columns.get_loc("Salario") if "Salario" in df_original.columns else (1 if len(df_original.columns) > 1 else 0)
-
-    col_x = st.sidebar.selectbox("Variable X:", df_original.columns, index=def_x)
-    col_y = st.sidebar.selectbox("Variable Y:", df_original.columns, index=def_y)
+    # Esto permite que el usuario elija qué columnas usar del CSV que subió
+    lista_columnas = df_original.columns.tolist()
     
+    col_x = st.sidebar.selectbox("Selecciona Eje X:", lista_columnas, index=0)
+    col_y = st.sidebar.selectbox("Selecciona Eje Y:", lista_columnas, index=min(1, len(lista_columnas)-1))
+    
+    # Actualizamos las columnas reales que vamos a usar
     COLUMNAS_CLUSTERING = [col_x, col_y]
 
-    # Limpieza de datos (por si el CSV tiene nulos)
-    df_original[COLUMNAS_CLUSTERING] = df_original[COLUMNAS_CLUSTERING].apply(pd.to_numeric, errors='coerce')
-    df_original.dropna(subset=COLUMNAS_CLUSTERING, inplace=True)
+    # --- LIMPIEZA SEGURA ---
+    # Ahora sí, convertimos a número solo las columnas seleccionadas
+    for col in COLUMNAS_CLUSTERING:
+        df_original[col] = pd.to_numeric(df_original[col], errors='coerce')
 
-    # Procesamiento
-    df_copia = df_original.copy()
-    X_original, df_escalado, escalador = preparar_y_escalar_datos(df_copia, COLUMNAS_CLUSTERING)
+    # Quitamos filas vacías
+    df_original.dropna(subset=COLUMNAS_CLUSTERING, inplace=True)
+    
+    # Procesamiento para el modelo
+    # Usamos una copia limpia para el escalado
+    X_original, df_escalado, escalador = preparar_y_escalar_datos(df_original, COLUMNAS_CLUSTERING)
 
     st.header("1. Datos Originales")
     st.markdown(f"Usando las columnas **{COLUMNAS_CLUSTERING[0]}** y **{COLUMNAS_CLUSTERING[1]}**.")
