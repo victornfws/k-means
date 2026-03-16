@@ -26,20 +26,30 @@ uploaded_file = st.sidebar.file_uploader("Selecciona tu archivo CSV", type=["csv
 # ====================================================================
 
 # Cargar los datos. st.cache_data asegura que solo se ejecute la primera vez.
-@st.cache_data 
-def cargar_y_preprocesar():
-    def cargar_datos(archivo_subido):
-        if uploaded_file is not None:
-            return pd.read_csv(uploaded_file)
+st.cache_data 
+def cargar_y_preprocesar(file):
+    # Si hay un archivo subido, lo leemos
+    if file is not None:
+        return pd.read_csv(file)
+    
+    # Si no hay nada subido, intentamos el local
     try:
         return pd.read_csv("data/clientes.csv")
     except FileNotFoundError:
+        st.error("No se encontró 'data/clientes.csv' ni archivo subido.")
         return None
-        
-df_original = cargar_y_preprocesar()
+
+# LLAMADA A LA FUNCIÓN (Pasándole el archivo del uploader)
+df_original = cargar_y_preprocesar(uploaded_file)
 
 if df_original is not None:
     
+    # Indicador visual de qué estamos viendo
+    if uploaded_file is not None:
+        st.sidebar.success(f"✅ Leyendo: {uploaded_file.name}")
+    else:
+        st.sidebar.info("Usando archivo local: clientes.csv")
+
     # Forzar a que las columnas sean numericas (si no lo son)
     for col in COLUMNAS_CLUSTERING:
         df_original[col] = pd.to_numeric(df_original[col], errors='coerce')
@@ -128,7 +138,7 @@ if df_original is not None:
     with col4:
         st.subheader("B. Agrupacion de Clusters")
         st.write("Puntos de datos coloreados por cluster. Centroides marcados con 'X' roja.")
-        
+
         fig_final, ax_final = plt.subplots(figsize=(10, 6))
         
         # Puntos de datos coloreados por cluster
