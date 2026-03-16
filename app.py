@@ -50,11 +50,21 @@ if df_original is not None:
     else:
         st.sidebar.info("Usando archivo local: clientes.csv")
 
-    # Forzar a que las columnas sean numericas (si no lo son)
-    for col in COLUMNAS_CLUSTERING:
-        df_original[col] = pd.to_numeric(df_original[col], errors='coerce')
+    # --- SELECCIÓN DINÁMICA DE COLUMNAS ---
+    # Esto evita que la app truene si el CSV cambia de nombres
+    st.sidebar.subheader("Selecciona las variables")
+    
+    # Buscamos si existen las de por defecto, si no, agarramos las primeras que haya
+    def_x = df_original.columns.get_loc("Anios_Experiencia") if "Anios_Experiencia" in df_original.columns else 0
+    def_y = df_original.columns.get_loc("Salario") if "Salario" in df_original.columns else (1 if len(df_original.columns) > 1 else 0)
 
-    # Eliminar filas que hayan quedado con NaN después de la conversión
+    col_x = st.sidebar.selectbox("Variable X:", df_original.columns, index=def_x)
+    col_y = st.sidebar.selectbox("Variable Y:", df_original.columns, index=def_y)
+    
+    COLUMNAS_CLUSTERING = [col_x, col_y]
+
+    # Limpieza de datos (por si el CSV tiene nulos)
+    df_original[COLUMNAS_CLUSTERING] = df_original[COLUMNAS_CLUSTERING].apply(pd.to_numeric, errors='coerce')
     df_original.dropna(subset=COLUMNAS_CLUSTERING, inplace=True)
 
     # Procesamiento
