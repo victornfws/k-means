@@ -13,10 +13,13 @@ from model_utils import (
 # Definición de las columnas (ajusta si tus nombres son diferentes)
 COLUMNAS_CLUSTERING = ['Ingresos Anuales', 'Puntuación de Gasto']
 
-
 st.set_page_config(layout="wide")
-st.title("🛍️ Segmentación de Clientes con K-means")
+st.title("Segmentación de Clientes con K-means")
 st.markdown("---")
+
+# --- Subir archivo ---
+st.sidebar.header("Subir archivo CSV")
+uploaded_file = st.sidebar.file_uploader("Selecciona tu archivo CSV", type=["csv"])
 
 # ====================================================================
 # 1. Carga de Datos y Preprocesamiento
@@ -25,26 +28,25 @@ st.markdown("---")
 # Cargar los datos. st.cache_data asegura que solo se ejecute la primera vez.
 @st.cache_data 
 def cargar_y_preprocesar():
+    def cargar_datos(archivo_subido):
+        if uploaded_file is not None:
+            return pd.read_csv(uploaded_file)
     try:
-        # Asume que 'clientes.csv' está en la carpeta 'data/'
-        df = pd.read_csv("data/clientes.csv") 
+        return pd.read_csv("data/clientes.csv")
     except FileNotFoundError:
-        st.error("Error: Archivo 'data/clientes.csv' no encontrado. Asegúrate de tener la estructura: data/clientes.csv")
-        return None, None, None, None
+        return None
         
-    # Preparar y escalar datos
-    df_copia = df.copy()
+df_original = cargar_y_preprocesar()
+
+if df_original is not None:
+    
+    # Procesamiento
+    df_copia = df_original.copy()
     X_original, df_escalado, escalador = preparar_y_escalar_datos(df_copia, COLUMNAS_CLUSTERING)
-    
-    return df_copia, X_original, df_escalado, escalador
 
-df, X_original, df_escalado, escalador = cargar_y_preprocesar()
-
-if df is not None:
-    
     st.header("1. Datos Originales")
     st.markdown(f"Usando las columnas **{COLUMNAS_CLUSTERING[0]}** y **{COLUMNAS_CLUSTERING[1]}**.")
-    st.dataframe(df.head(10))
+    st.dataframe(df_original.head(10))
     st.markdown("---")
     
     # ====================================================================
@@ -55,6 +57,7 @@ if df is not None:
     
     with col1:
         st.header("2. Método del Codo")
+        st.write("La **Inercia** mide que tan cerca estan los puntos de su centroide")
         st.markdown("Elige el número de clusters (K) donde la curva se dobla (el 'codo').")
         
         # Interfaz para que el usuario elija K
@@ -67,13 +70,12 @@ if df is not None:
     with col2:
         # Cálculo y Gráfica del Codo
         K_rango, inercia = calcular_inercia(df_escalado)
-        
         fig_codo, ax_codo = plt.subplots(figsize=(8, 4))
-        ax_codo.plot(K_rango, inercia, marker='o', linestyle='--', color='blue')
         ax_codo.set_title('Método del Codo')
+        ax_codo.plot(K_rango, inercia, marker='o', linestyle='--', color='blue')
+        ax_codo.axvline(x=k_optimo, color='r', linestyle='--', label=f'K={k_optimo} Seleccionado')
         ax_codo.set_xlabel('Número de Clusters (k)')
         ax_codo.set_ylabel('Inercia (WCSS)')
-        ax_codo.axvline(x=k_optimo, color='r', linestyle='--', label=f'K={k_optimo} Seleccionado')
         ax_codo.legend()
         ax_codo.grid(True)
         st.pyplot(fig_codo, use_container_width=True)
@@ -90,40 +92,41 @@ if df is not None:
     etiquetas, centroides_escalados = aplicar_kmeans(df_escalado, k_optimo)
     
     # Añadir las etiquetas al DataFrame original para el análisis
-    df['Cluster'] = etiquetas
+    df_original['Cluster'] = etiquetas
     
     # Transformación inversa de los centroides a la escala original
     centroides_originales = escalador.inverse_transform(centroides_escalados)
-    
     
     # A. Análisis de Perfiles de Cluster
     col3, col4 = st.columns([1, 1])
     
     with col3:
-        st.subheader("A. Perfiles Promedio de los Clusters")
+        st.subheader("A. Perfiles promedio de cada Cluster")
         st.markdown(f"Características medias de los {k_optimo} grupos:")
-        perfiles = df.groupby('Cluster')[COLUMNAS_CLUSTERING].mean()
+        perfiles = df_copia.groupby('Cluster')[COLUMNAS_CLUSTERING].mean()
         st.dataframe(perfiles.style.format("{:.2f}"))
         
     # B. Gráfica de Segmentación
     with col4:
-        st.subheader("B. Distribución de Clusters")
+        st.subheader("B. Agrupacion de Clusters")
         
         fig_final, ax_final = plt.subplots(figsize=(10, 6))
         
-        # Scatter plot de los puntos de datos (clientes)
-        scatter = ax_final.scatter(df[COLUMNAS_CLUSTERING[0]], df[COLUMNAS_CLUSTERING[1]], 
-                                   c=df['Cluster'], cmap='viridis', s=80, alpha=0.7)
+        # Puntos de datos coloreados por cluster
+        scatter = ax_final.scatter(df_original[COLUMNAS_CLUSTERING[0]], df_original[COLUMNAS_CLUSTERING[1]], 
+                                   c=df_original['Cluster'], cmap='viridis', s=80, alpha=0.7)
         
-        # Scatter plot de los centroides (marcadores 'X')
+        # Centroides marcados con 'X' roja
         ax_final.scatter(centroides_originales[:, 0], centroides_originales[:, 1], 
-                         marker='X', s=300, c='red', edgecolor='black', 
+                         marker='X', s=200, c='red', edgecolor='black', 
                          label='Centroides')
         
-        ax_final.set_title(f'Segmentación de Clientes con K={k_optimo}')
+        ax_final.set_title(f'Segmentación de clientes con K={k_optimo}')
         ax_final.set_xlabel(COLUMNAS_CLUSTERING[0])
         ax_final.set_ylabel(COLUMNAS_CLUSTERING[1])
         ax_final.legend()
         ax_final.grid(True)
         
         st.pyplot(fig_final, use_container_width=True)
+else:
+    st.warning("No se pudo cargar el archivo. Asegúrate de subir un CSV válido o que el archivo local exista.")
