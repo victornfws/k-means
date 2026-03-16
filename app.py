@@ -109,6 +109,8 @@ if df_original is not None:
     
     with col3:
         st.subheader("A. Perfiles promedio de los Clusters")
+        st.write("Color azul: valores más altos, color blanco: valores más bajos.")
+
         # 1. Aseguramos que los datos sean numéricos y calculamos el promedio
         try:
             # Forzamos numérico por si el CSV venía "sucio"
@@ -125,6 +127,7 @@ if df_original is not None:
     # B. Gráfica de Segmentación
     with col4:
         st.subheader("B. Agrupacion de Clusters")
+        st.write("Puntos de datos coloreados por cluster. Centroides marcados con 'X' roja.")
         
         fig_final, ax_final = plt.subplots(figsize=(10, 6))
         
