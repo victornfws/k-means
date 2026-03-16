@@ -40,6 +40,13 @@ df_original = cargar_y_preprocesar()
 
 if df_original is not None:
     
+    # Forzar a que las columnas sean numericas (si no lo son)
+    for col in COLUMNAS_CLUSTERING:
+        df_original[col] = pd.to_numeric(df_original[col], errors='coerce')
+
+    # Eliminar filas que hayan quedado con NaN después de la conversión
+    df_original.dropna(subset=COLUMNAS_CLUSTERING, inplace=True)
+
     # Procesamiento
     df_copia = df_original.copy()
     X_original, df_escalado, escalador = preparar_y_escalar_datos(df_copia, COLUMNAS_CLUSTERING)
@@ -101,11 +108,20 @@ if df_original is not None:
     col3, col4 = st.columns([1, 1])
     
     with col3:
-        st.subheader("A. Perfiles promedio de cada Cluster")
-        st.markdown(f"Características medias de los {k_optimo} grupos:")
-        perfiles = df_copia.groupby('Cluster')[COLUMNAS_CLUSTERING].mean()
-        st.dataframe(perfiles.style.format("{:.2f}"))
-        
+        st.subheader("A. Perfiles Promedio de los Clusters")
+        # 1. Aseguramos que los datos sean numéricos y calculamos el promedio
+        try:
+            # Forzamos numérico por si el CSV venía "sucio"
+            df_copia[COLUMNAS_CLUSTERING] = df_copia[COLUMNAS_CLUSTERING].apply(pd.to_numeric, errors='coerce')
+            
+            # Agrupamos y promediamos indicando que solo queremos números
+            perfiles = df_copia.groupby('Cluster')[COLUMNAS_CLUSTERING].mean(numeric_only=True)
+            
+            # Mostramos con formato bonito
+            st.dataframe(perfiles.style.format("{:.2f}").background_gradient(cmap='Blues'))
+        except Exception as e:
+            st.error(f"Error al calcular perfiles: {e}")
+      
     # B. Gráfica de Segmentación
     with col4:
         st.subheader("B. Agrupacion de Clusters")

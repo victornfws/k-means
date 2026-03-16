@@ -9,25 +9,36 @@ warnings.filterwarnings("ignore", category=FutureWarning, module="sklearn.cluste
 # ====================================================================
 # FUNCIÓN 1: Preparación y Escalamiento de Datos
 # ====================================================================
-
 def preparar_y_escalar_datos(df: pd.DataFrame, columnas: list):
     """
-    Selecciona las columnas para el clustering, escala los datos usando MinMaxScaler 
-    y devuelve los datos originales, escalados y el objeto escalador.
+    Prepara los datos para clustering manejando valores nulos y asegurando
+    que las variables tengan la misma importancia (escalado).
     """
+    # 1. Limpieza preventiva: Eliminar filas con nulos en las columnas seleccionadas
+    # K-Means no acepta valores NaN (Not a Number)
+    df_limpio = df.dropna(subset=columnas).copy()
     
-    # 1. Seleccionar columnas
-    X = df[columnas]
+    # 2. Asegurar que los datos sean numéricos
+    # Si el CSV trae un " $1,000", esto lo convertirá a número o pondrá NaN
+    for col in columnas:
+        df_limpio[col] = pd.to_numeric(df_limpio[col], errors='coerce')
     
-    # 2. Instanciar y ajustar el escalador
+    # 3. Segunda limpieza tras la conversión por si aparecieron nuevos nulos
+    df_limpio = df_limpio.dropna(subset=columnas)
+    
+    # 4. Seleccionar los datos para el modelo
+    X = df_limpio[columnas]
+    
+    # 5. Escalamiento (MinMaxScaler)
+    # Importante: K-Means usa distancias euclidianas. Sin esto, la variable con
+    # números más grandes (ej. Ingresos) dominaría sobre la pequeña (ej. Puntuación).
     escalador = MinMaxScaler()
     X_escalado = escalador.fit_transform(X)
     
-    # 3. Convertir a DataFrame para el clustering
-    df_escalado = pd.DataFrame(X_escalado, columns=columnas)
+    # 6. Convertir a DataFrame manteniendo el índice original para no perder la relación
+    df_escalado = pd.DataFrame(X_escalado, columns=columnas, index=df_limpio.index)
     
-    return X, df_escalado, escalador
-
+    return df_limpio, df_escalado, escalador
 
 # ====================================================================
 # FUNCIÓN 2: Método del Codo (Inercia)
